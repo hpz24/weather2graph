@@ -1,10 +1,11 @@
 #!/bin/bash
+## Import global file variablen.sh
 source /tmp/variablen.sh
 
-#Suche und ersetzen vom Datum 
+## Search and Replace with the actual date 
 sed -i "s/.*TIME,1,10) .*/SUBSTRING(TIME,1,10) = '$actualdat'/g" $dailyscript
 
-#Aufraeumen von vorhandenen Dateien
+## Cleanup the Directory
 if test -e "$exptempin";then
 rm $exptempin
 fi
@@ -21,44 +22,43 @@ if test -e "$exppress";then
 rm $exppress
 fi
 
-
-#Suche und ersetzen von Tabellename 1temp30 und Ausgabedatei auf 1temp30.csv
+## Search und Replace Tablename 'tabtempin' und exportfile for Temperature Inside, then export
 sed -i 's/.*FROM.*/FROM '$tabtempin'/g' $dailyscript
 sed -i "s|.*OUTFIL.*|INTO OUTFILE '$tempdir/$exptempin'|g" $dailyscript
 
 "/usr/bin/mysql" -u $dbuser -p$dbpassword -D$dbused < $dailyscript
 
-#Suche und Ersetzen von Tabellename innen und Umstellung Ausgabedatei auf aussen
+## Search und Replace Tablename 'tabtempout' und exportfile for Temperature Outside, then export
 sed -i 's/.*FROM.*/FROM '$tabtempout'/g' $dailyscript
 sed -i "s|.*OUTFIL.*|INTO OUTFILE '$tempdir/$exptempout'|g" $dailyscript
 
 "/usr/bin/mysql" -u $dbuser -p$dbpassword -D$dbused < $dailyscript
 
-#Suche und ERsetzen von Tabellenname luftdruck und Umstellung Ausgabedatei auf luftdruck
+## Search und Replace Tablename 'tabhumin' und exportfile for Huminity Inside, then export
 sed -i 's/.*FROM.*/FROM '$tabhumin'/g' $dailyscript
 sed -i "s|.*OUTFIL.*|INTO OUTFILE '$tempdir/$exphumin'|g" $dailyscript
 
 "/usr/bin/mysql" -u $dbuser -p$dbpassword -D$dbused < $dailyscript
 
 
-#Suche und ERsetzen von Tabellenname luftdruck und Umstellung Ausgabedatei auf luftdruck
+## Search und Replace Tablename 'tabhumout' und exportfile for Huminity Outside, then export
 sed -i 's/.*FROM.*/FROM '$tabhumout'/g' $dailyscript
 sed -i "s|.*OUTFIL.*|INTO OUTFILE '$tempdir/$exphumout'|g" $dailyscript
 
 "/usr/bin/mysql" -u $dbuser -p$dbpassword -D$dbused < $dailyscript
 
-#Suche und ERsetzen von Tabellenname luftdruck und Umstellung Ausgabedatei auf luftdruck
+## Search und Replace Tablename 'tabpress' und exportfile for Presure, then export
 sed -i 's/.*FROM.*/FROM '$tabpress'/g' $dailyscript
 sed -i "s|.*OUTFIL.*|INTO OUTFILE '$tempdir/$exppress'|g" $dailyscript
 
 "/usr/bin/mysql" -u $dbuser -p$dbpassword -D$dbused < $dailyscript
 
-# Verschieben der Dateien auf /opt/wetter/visual
+## Move Files to $datadir (/opt/wetter/visual)
 
 mv $tempdir/$actualdat*.csv $datadir
 
 
-## Plot von Temperatur
+## Modify plot-script for plotting Temperature
 sed -i 's/.*title.*/set title "Temperatur vom '$actualdat'"/g' $dailyplot
 sed -i 's/.*ylabel.*/set ylabel "Wert in C°"/g' $dailyplot
 sed -i 's/.*yrange.*/set yrange [ -15 : 45 ]/g' $dailyplot
@@ -67,7 +67,7 @@ sed -i "s|.*using.*|plot '$datadir/$exptempout' using 1:2 t '', '/$datadir/$expt
 
 "/usr/bin/gnuplot" /$dailyplot
 
-## Plot von Luftfeuchte
+## Modify plot-script for plotting Huminity
 sed -i 's/.*title.*/set title "Luftfeuchte vom '$actualdat'/g' $dailyplot
 sed -i 's/.*ylabel.*/set ylabel "Wert in %"/g' $dailyplot
 sed -i 's/.*yrange.*/set yrange [ 0 : 100 ]/g' $dailyplot
@@ -76,7 +76,7 @@ sed -i "s|.*using.*|plot '$datadir/$exphumout' using 1:2 t '', '/$datadir/$exphu
 
 "/usr/bin/gnuplot" $dailyplot
 
-## Plot von Luftdruck
+## Modify plot-script for plotting Pressure
 sed -i 's/.*title.*/set title "Luftdruck vom '$actualdat'/g' $dailyplot
 sed -i 's/.*ylabel.*/set ylabel "Wert in hPa"/g' $dailyplot
 sed -i 's/.*yrange.*/set yrange [ 950 : 1050 ]/g' $dailyplot
@@ -85,18 +85,18 @@ sed -i "s|.*using.*|plot '$datadir/$exppress' using 1:2 t '', '/$datadir/$exppre
 
 "/usr/bin/gnuplot" $dailyplot
 
-# Umbennenn der aktuellen Dateien auf statischen namen für Web-Upload
+## Rename file with actual data to static names for web view
 cp -v $graphdir/$actualdat-temp.png $graphdir/temperatur-today.png
 cp -v $graphdir/$actualdat-hum.png $graphdir/luftfeuchte-today.png
 cp -v $graphdir/$actualdat-press.png $graphdir/luftdruck-today.png
 
-# Umbennenn der Dateien von gestern auf statischen namen für Web-Upload
+## Rename file with last days data to static name for web view
 cp -v $graphdir/$yesterdat-temp.png $graphdir/temperatur-yesterday.png
 cp -v $graphdir/$yesterdat-hum.png $graphdir/luftfeuchte-yesterday.png
 cp -v $graphdir/$yesterdat-press.png $graphdir/luftdruck-yesterday.png
 
 
-
+## Web Upload with Script, local directory is $graphdir, remote directory is $ftpdir, data will load directly up
 "/usr/bin/ftp" -n $ftpserver <<End-Of-Session
 user $ftpuser $ftppass
 binary
@@ -110,6 +110,5 @@ put luftfeuchte-today.png
 put luftdruck-today.png
 bye
 End-Of-Session
-echo Ftp-Upload durchgeführt
 
 
